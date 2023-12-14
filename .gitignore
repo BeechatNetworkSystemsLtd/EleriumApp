@@ -1,0 +1,62 @@
+# Dependency directories
+node_modules/
+npm-debug.log
+
+# iOS
+ios/build/
+ios/Pods/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+
+# Android
+android/.gradle
+android/build
+android/app/build
+*.keystore
+*.jks
+android/app/build/intermediates/lint_vital_intermediate_text_report/release/ 
+android/app/build/intermediates/merged_native_libs/release/out/lib/ 
+
+# BUCK
+buck-out/
+.buckd/
+*.keystore
+!debug.keystore
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Others
+.DS_Store
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+history/
+
+# Yarn
+yarn-error.log
+.yarn-integrity
+
+# misc
+*.log
+*.tmp
+*.temp
+*.swp
+*~

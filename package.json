@@ -11,7 +11,7 @@
     "postinstall": "rn-nodeify --hack"
   },
   "dependencies": {
-    "@beechatnetwork/lib-dqx": "^0.0.5",
+    "@beechatnetwork/lib-dqx": "^0.0.6",
     "@react-native-async-storage/async-storage": "^1.19.1",
     "@react-native-clipboard/clipboard": "^1.11.2",
     "assert": "^2.0.0",
@@ -27,8 +27,8 @@
     "react-native-nfc-manager": "^3.14.5",
     "react-native-permissions": "^3.8.4",
     "react-native-randombytes": "^3.6.1",
+    "react-native-secure-key-store": "^2.0.10",
     "readable-stream": "^4.4.2",
-    "rn-nodeify": "^10.3.0",
     "stream-browserify": "^3.0.0"
   },
   "devDependencies": {
@@ -46,6 +46,7 @@
     "metro-react-native-babel-preset": "0.76.7",
     "prettier": "^2.4.1",
     "react-test-renderer": "18.2.0",
+    "rn-nodeify": "github:tradle/rn-nodeify",
     "typescript": "4.8.4"
   },
   "engines": {

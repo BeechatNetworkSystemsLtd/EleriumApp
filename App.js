@@ -1,5 +1,10 @@
 import crypto from 'crypto';
+import { createHash } from 'crypto';
+import { randomBytes } from 'react-native-randombytes'; 
+import RNSecureKeyStore, { ACCESSIBLE } from 'react-native-secure-key-store';
+
 import {Buffer} from 'buffer/';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NfcManager from 'react-native-nfc-manager';
 import React from 'react';
 import {
@@ -15,8 +20,9 @@ import {
   View,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  dilithiumGenKeyPair,
+  dilithiumSign,
   dilithiumVerifySig,
   changePassword,
   eraseKeys,
@@ -39,9 +45,14 @@ const App = () => {
   const [currentAction, setCurrentAction] = React.useState('');
   const [nfcResult, setNfcResult] = React.useState(null);
   const [viewMode, setViewMode] = React.useState('main');
+
+
   const [erasePassword, setErasePassword] = React.useState('');
   const [oldPassword, setOldPassword] = React.useState('');
   const [newURL, setNewURL] = React.useState('');
+
+  const [identityHash, setIdentityHash] = React.useState(null);
+
 
   const [tagRegistryURL, setTagRegistryURL] = React.useState('');
   const [userLogin, setUserLogin] = React.useState('');
@@ -50,7 +61,67 @@ const App = () => {
   const [challenge, setChallenge] = React.useState(null);
   const [verifyResult, setVerifyResult] = React.useState(null);
   const [lookupResult, setLookupResult] = React.useState(null);
+  
+  const copyIdentityHashToClipboard = () => {
+    if (identityHash) {
+      Clipboard.setString(identityHash);
+      Alert.alert('Copied', 'Identity hash copied to clipboard!');
+    }
+  };
 
+
+  const createIdentity = async () => {
+    try {
+      console.log("Starting key pair generation");
+      const { publicKey, secretKey } = await dilithiumGenKeyPair({
+        randomBytes: (size) => {
+          console.log(`randomBytes called with size: ${size}`);
+          return Buffer.from(randomBytes(size));
+        }
+      });
+      console.log("Key pair generated");
+  
+      // Hash the public key using SHA-256
+      const hashedPublicKey = sha256(publicKey);
+      console.log("Hashed Public Key:", hashedPublicKey);
+  
+      // Save the keypair securely
+      const keypair = JSON.stringify({ publicKey: publicKey.toString('hex'), secretKey: secretKey.toString('hex') });
+      await RNSecureKeyStore.set('dilithiumKeypair', keypair, { accessible: ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
+      console.log("Saved to Secure Key Store");
+
+
+      setIdentityHash(hashedPublicKey);
+
+      Alert.alert('Identity Created', 'Your Dilithium keypair has been successfully generated and saved securely. Your hash: ' + hashedPublicKey);
+
+    } catch (error) {
+      console.error('Error in createIdentity:', error);
+      Alert.alert('Error', `Failed to create identity: ${error.message || error.toString()}`);
+    }
+  };
+  
+  React.useEffect(() => {
+    async function readStoredIdentity() {
+      try {
+        const storedKeypair = await RNSecureKeyStore.get('dilithiumKeypair');
+        if (storedKeypair) {
+          const keypair = JSON.parse(storedKeypair);
+          const publicKey = keypair.publicKey;
+          const hashedPublicKey = sha256(Buffer.from(publicKey, 'hex'));
+          setIdentityHash(hashedPublicKey);
+        }
+      } catch (error) {
+        console.error('Error reading secure key store:', error);
+      }
+    }
+  
+    readStoredIdentity();
+  }, []);
+  
+  
+
+  
   React.useEffect(() => {
     async function readStoredSettings() {
       let rememberedURL = null;
@@ -111,16 +182,28 @@ const App = () => {
     async function initNfc() {
       try {
         await NfcManager.start();
-        setSupported(await NfcManager.isSupported());
-        setEnabled(await NfcManager.isEnabled());
+        const isSupported = await NfcManager.isSupported();
+        const isEnabled = await NfcManager.isEnabled();
+  
+        setSupported(isSupported);
+        setEnabled(isEnabled);
+  
+        if (!isSupported || !isEnabled) {
+          Alert.alert(
+            'NFC Unavailable',
+            'NFC is not supported or enabled on this device. Some features may not be available.',
+            [{ text: 'OK' }]
+          );
+        }
       } catch (ex) {
         console.error(ex);
-        Alert.alert('ERROR', 'Failed to init NFC', [{text: 'OK'}]);
+        Alert.alert('ERROR', 'Failed to initialize NFC', [{ text: 'OK' }]);
       }
     }
-
+  
     initNfc();
   }, []);
+  
 
   async function generateChallenge() {
     let tmp = crypto.randomBytes(32);
@@ -362,7 +445,7 @@ const App = () => {
       Alert.alert('Public key was copied to the clipboard!');
     }
   }
-
+/*
   if (!supported || !enabled) {
     return (
       <SafeAreaView>
@@ -377,6 +460,7 @@ const App = () => {
       </SafeAreaView>
     );
   }
+  */
 
   const dimensions = Dimensions.get('window');
   const width = dimensions.width - 80;
@@ -433,6 +517,61 @@ const App = () => {
             </View>
           </View>
         )}
+      </View>
+    );
+  } else if (viewMode === 'identity') {
+    viewContent = (
+      <View>
+        {/* Back button and Identity Screen Title */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', padding: 20 }}>
+          <TouchableOpacity onPress={() => setViewMode('main')}>
+            <Image
+              source={require('./assets/backIcon.png')}
+              style={{ height: 60, width: 60 }}
+            />
+          </TouchableOpacity>
+          <Text style={{
+            fontSize: 25,
+            fontWeight: 'bold',
+            fontFamily: 'monospace',
+            color: 'white',
+            paddingLeft: 10 // Add padding to separate the text from the icon
+          }}>
+            Identity
+          </Text>
+        </View>
+        
+        {/* Buttons for Identity actions */}
+        <View style={{ paddingTop: 10, paddingBottom: 10 }}>
+          <SButton
+            title="Create New Identity"
+            onPress={createIdentity} // Referencing the existing createIdentity function
+            btnStyle={'normal'}
+          />
+        </View>
+
+        {/* Placeholder for other buttons - you'll implement their onPress functions similarly */}
+        <View style={{ paddingTop: 10, paddingBottom: 10 }}> 
+          <SButton
+            title="Sign Message"
+            onPress={() => {/* Placeholder function */}}
+            btnStyle={'normal'}
+          />
+        </View>
+        <View style={{ paddingTop: 10, paddingBottom: 10 }}>
+          <SButton
+            title="Verify Message"
+            onPress={() => {/* Placeholder function */}}
+            btnStyle={'normal'}
+          />
+        </View>
+        <View style={{ paddingTop: 10, paddingBottom: 10 }}>
+          <SButton
+            title="Export Keys"
+            onPress={() => {/* Placeholder function */}}
+            btnStyle={'normal'}
+          />
+        </View>
       </View>
     );
   } else if (viewMode === 'password') {
@@ -535,7 +674,29 @@ const App = () => {
   } else if (viewMode === 'create') {
     viewContent = (
       <View>
+        
+        {identityHash && (
+          <TouchableOpacity onPress={copyIdentityHashToClipboard}>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                Identity Hash:
+              </Text>
+              <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>
+                {identityHash}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+        )}
+        <View style={{paddingTop: 30}}></View>
         <Text style={{fontSize: 24, color: 'white'}}>Tag management</Text>
+        <View style={{paddingTop: 30}}>
+          <SButton
+            onPress={() => setViewMode('identity')}
+            title={'Identity'}
+            btnStyle={'normal'}
+          />
+        </View>
         <View style={{paddingTop: 30}}>
           <SButton
             onPress={() => btnGenerateKeys()}
