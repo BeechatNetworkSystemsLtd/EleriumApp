@@ -24,6 +24,7 @@ DerivedData
 android/.gradle
 android/build
 android/app/build
+*.apk
 *.keystore
 *.jks
 android/app/build/intermediates/lint_vital_intermediate_text_report/release/ 
