@@ -18,13 +18,12 @@ const ServerSettings = (props) => {
         rememberedURL = await getString("dqxRegistryURL");
       } finally {
         if (!rememberedURL) {
-          rememberedURL = "https://beechat.buzz";
+          rememberedURL = "https://xrpstudio.io";
         }
       }
       let rememberedLogin = null;
       try {
         rememberedLogin = await getString("dqxUserLogin");
-        console.log("i am storage ", rememberedLogin);
       } finally {
         if (!rememberedLogin) {
           rememberedLogin = "";

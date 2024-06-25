@@ -1,7 +1,15 @@
 export const IMAGES = {
+  appLogo: require("../../assets/EleriumLogoApp-01.png"),
   horizontalLogo: require("../../assets/HorizontalLogoEleriumNew.png"),
   settingIcon: require("../../assets/settingIcon.png"),
   backIcon: require("../../assets/backIcon.png"),
   successIcon: require("../../assets/success.png"),
   failureIcon: require("../../assets/failure.png"),
+  addIcon: require("../../assets/addIcon.png"),
+  minusIcon: require("../../assets/minusIcon.png"),
+  chooseFile: require("../../assets/chooseFile.png"),
+  audio: require("../../assets/audio.png"),
+  image: require("../../assets/image.png"),
+  pdf: require("../../assets/pdf.png"),
+  video: require("../../assets/video.png"),
 };
