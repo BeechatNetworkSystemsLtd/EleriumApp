@@ -11,6 +11,9 @@ import ServerSettings from "../screens/serverSettings";
 
 import { SCREENS } from "../constants/screens";
 import Settings from "../screens/settings";
+import RegisterTag from "../screens/registerTag";
+import PdfViewer from "../screens/fileViewer";
+import MyCreatedAssets from "../screens/myCreatedAssets";
 
 const {
   MAIN,
@@ -21,6 +24,9 @@ const {
   CHANGEPASSWORD,
   ERASKEYS,
   SERVERSETTINGS,
+  REGISTER_TAGS,
+  PDF_VIEWER,
+  MY_CREATED_ASSETS,
 } = SCREENS;
 
 const RootStack = () => {
@@ -30,7 +36,8 @@ const RootStack = () => {
     <NavigationContainer>
       <MainStack.Navigator
         initialRouteName={MAIN}
-        screenOptions={{ headerShown: false }}
+        // initialRouteName={REGISTER_TAGS}
+        screenOptions={{ headerShown: false, animation: "fade" }}
       >
         <MainStack.Screen component={Main} name={MAIN} />
         <MainStack.Screen component={Settings} name={SETTINGS} />
@@ -40,6 +47,12 @@ const RootStack = () => {
         <MainStack.Screen component={ChangePassword} name={CHANGEPASSWORD} />
         <MainStack.Screen component={EraseKeys} name={ERASKEYS} />
         <MainStack.Screen component={ServerSettings} name={SERVERSETTINGS} />
+        <MainStack.Screen component={RegisterTag} name={REGISTER_TAGS} />
+        <MainStack.Screen component={PdfViewer} name={PDF_VIEWER} />
+        <MainStack.Screen
+          component={MyCreatedAssets}
+          name={MY_CREATED_ASSETS}
+        />
       </MainStack.Navigator>
     </NavigationContainer>
   );

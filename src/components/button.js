@@ -3,7 +3,8 @@ import { Text, StyleSheet, Image, View, TouchableOpacity } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { IMAGES } from "../constants/images";
 import { COLORS } from "../constants/colors";
-
+import * as Progress from "react-native-progress";
+import { AnimatedCircularProgress } from "react-native-circular-progress";
 export default function SButton(props) {
   const { onPress, title = "Save" } = props;
   let buttonStyle = styles.button;
@@ -11,6 +12,33 @@ export default function SButton(props) {
   let gradientColor = ["#ffd60a", "#ffa203"];
   let txtColor = "#000000";
   let img = <View />;
+
+  let currentFill =
+    title == "DOWNLOADING PUBLIC KEY"
+      ? 33
+      : title == "PERFORMING AUTHENTICATION"
+      ? 64
+      : title == "DOWNLOADING SIGNATURE"
+      ? 99
+      : null;
+  let progressBar = (
+    <View style={styles.progressBarContainer}>
+      {currentFill && (
+        <AnimatedCircularProgress
+          size={50}
+          width={5}
+          fill={currentFill}
+          tintColor={COLORS.white}
+          onAnimationComplete={() => console.log("onAnimationComplete")}
+          backgroundColor={COLORS.black}
+        >
+          {(fill) => {
+            return <Text style={{ color: "white" }}>{currentFill}%</Text>;
+          }}
+        </AnimatedCircularProgress>
+      )}
+    </View>
+  );
 
   if (props.btnStyle === "success") {
     buttonStyle = styles.buttonSuccess;
@@ -42,7 +70,7 @@ export default function SButton(props) {
     <LinearGradient
       colors={gradientColor}
       style={styles.gradientBtn}
-      locations={[0.23, 0.51, 0.74]}
+      locations={[0.23, 0.51]}
       useAngle={true}
       angle={125.9}
       h
@@ -52,7 +80,9 @@ export default function SButton(props) {
         style={styles.button}
       >
         <Text style={[textStyle, { color: txtColor }]}>{title}</Text>
+
         {img}
+        {progressBar}
       </TouchableOpacity>
     </LinearGradient>
   );
@@ -102,9 +132,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#E32234",
   },
   text: {
-    fontSize: 20,
+    fontSize: 16,
     // fontWeight: 'bold',
     letterSpacing: 0.25,
     color: COLORS.white,
+  },
+  progressBarContainer: {
+    position: "absolute",
+    right: 15,
+    width: 50,
+    height: 50,
   },
 });

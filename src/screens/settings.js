@@ -28,10 +28,7 @@ const Settings = (props) => {
         if (storedKeypair) {
           const keypair = JSON.parse(storedKeypair);
           const publicKey = keypair.publicKey;
-          // Hash the public key using SHA-256
-      
-          console.log("Hashed Public Key:", hashedPublicKey);
-          const hashedPublicKey = sha256(publicKey.toString("hex"))
+          const hashedPublicKey = sha256(Buffer.from(publicKey, "hex"));
           setIdentityHash(hashedPublicKey);
         }
       } catch (error) {
@@ -50,15 +47,9 @@ const Settings = (props) => {
 
   const handleBack = async () => {
     navigation.goBack();
-    // await cancelNfcOperation();
-    //         setVerifyResult(false);
-    //         setLookupResult(null);
-    //         setNfcResult(null);
-    //         setViewMode("main");
   };
   const handleIdentityPress = () => {
     navigation.navigate(SCREENS.IDENTITY);
-    //  setViewMode("identity")
   };
 
   const handleGenerateKeyPress = () => {

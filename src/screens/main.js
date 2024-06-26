@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Text,
   View,
@@ -12,7 +12,11 @@ import {
 import SButton from "../components/button";
 import crypto from "crypto";
 import { dqxPerformNFC } from "@beechatnetwork/lib-dqx/rn-api.js";
-import { dilithiumVerifySig, signChallenge } from "@beechatnetwork/lib-dqx";
+import {
+  dilithiumVerifySig,
+  signChallenge,
+  dilithiumSign,
+} from "@beechatnetwork/lib-dqx";
 import Clipboard from "@react-native-clipboard/clipboard";
 import NfcManager from "react-native-nfc-manager";
 import { bytesToHex } from "../services/helpers";
@@ -21,9 +25,18 @@ import { COLORS } from "../constants/colors";
 import { SCREENS } from "../constants/screens";
 import { getString } from "../services/storageUtils";
 
-import { doLookupTag } from "../services/HttpUtils";
+import {
+  doLookupTag,
+  removingMetadata,
+  retrievingMetadata,
+} from "../services/HttpUtils";
 import { sha256 } from "js-sha256";
+import NFTDisplay from "../components/NFTDisplay";
+import NFTDisplayMetadata2 from "../components/NFTDisplayMetadata2";
+import Toast from "react-native-toast-message";
 const dimensions = Dimensions.get("window");
+import RNSecureKeyStore, { ACCESSIBLE } from "react-native-secure-key-store";
+import DeviceInfo from "react-native-device-info";
 const Main = (props) => {
   const { navigation } = props;
   const [isWorking, setIsWorking] = React.useState(false);
@@ -32,8 +45,13 @@ const Main = (props) => {
   const [nfcResult, setNfcResult] = React.useState(null);
   const [verifyResult, setVerifyResult] = React.useState(null);
   const [tagRegistryURL, setTagRegistryURL] = React.useState("");
-
   const [lookupResult, setLookupResult] = React.useState(null);
+  const [isEDIData, setIsEDIData] = React.useState(false);
+  const [EDIData, setEDIdata] = React.useState(false);
+  const [identityHash, setIdentityHash] = React.useState(null);
+  const [identitySecret, setIdentitySecret] = React.useState(null);
+  let verifyTagLabel = "VERIFY TAG";
+  let verifyButtonStyle = "normal";
 
   async function btnPerformSigning() {
     setWorkStatusMessage("PLEASE TAP TAG");
@@ -46,7 +64,8 @@ const Main = (props) => {
         { setWorkStatusMessage },
         { challenge }
       );
-      console.log(result);
+      const hashedPublicKey = bytesToHex(result?.publicKey);
+
       setNfcResult(result);
     } catch (e) {
       console.log(e);
@@ -65,6 +84,27 @@ const Main = (props) => {
     let tmp = crypto.randomBytes(32);
     setChallenge(tmp);
   }
+
+  React.useEffect(() => {
+    async function readStoredIdentity() {
+      try {
+        const storedKeypair = await RNSecureKeyStore.get("dilithiumKeypair");
+        if (storedKeypair) {
+          const keypair = JSON.parse(storedKeypair);
+          const publicKey = keypair.publicKey;
+
+          const hashedPublicKey = sha256(Buffer.from(publicKey, "hex"));
+          setIdentityHash(publicKey);
+          setIdentitySecret(keypair.secretKey);
+        }
+      } catch (error) {
+        console.error("Error reading secure key store:", error);
+      }
+    }
+
+    readStoredIdentity();
+  }, []);
+
   React.useEffect(() => {
     async function readStoredSettings() {
       let rememberedURL = null;
@@ -73,7 +113,8 @@ const Main = (props) => {
         rememberedURL = await getString("dqxRegistryURL");
       } finally {
         if (!rememberedURL) {
-          rememberedURL = "https://beechat.buzz";
+          // rememberedURL = "https://beechat.buzz";
+          rememberedURL = "https://xrpstudio.io";
         }
       }
 
@@ -120,19 +161,68 @@ const Main = (props) => {
             signature: nfcResult.signature,
           })
         );
-
+        let lookupRes = null;
         if (tagRegistryURL) {
-          let lookupRes = await doLookupTag({
+          lookupRes = await doLookupTag({
             serverAddr: tagRegistryURL,
-            publicKeyHash: sha256(nfcResult.publicKey),
+            publicKeyHash: bytesToHex(nfcResult.publicKey),
           });
+
           setLookupResult(lookupRes);
+
+          if (lookupRes?.includes("Error")) {
+            _retrieveDataFromEDI("http://138.68.190.112/");
+          }
+        } else {
+          // if no result found or tagRegistryURL is null then check from EDI
+          _retrieveDataFromEDI("http://138.68.190.112/");
         }
       }
     }
 
     verifySignature();
   }, [nfcResult, tagRegistryURL]);
+
+  //verify signature
+
+  const verifyTagOwner = async () => {
+    console.log(
+      "varify tag 1111111111111",
+      await dilithiumVerifySig({
+        publicKey: identityHash, //user public key
+        challenge: nfcResult.challenge,
+        signature: nfcResult.signature,
+      })
+    );
+  };
+
+  //handle retrieve data from EDI
+
+  const _retrieveDataFromEDI = (url) => {
+    retrievingMetadata(url, (headers = {}), sha256(nfcResult.publicKey))
+      .then((res) => {
+        if (res?.data == "" || res?.data == null) {
+          props.navigation.navigate(SCREENS.REGISTER_TAGS, {
+            nfcResult: nfcResult,
+          });
+        } else {
+          setEDIdata(res?.data?.data);
+          setIsEDIData(true);
+          verifyTagOwner();
+        }
+      })
+      .catch((error) => {
+        console.log(url, "error while finding ", error);
+
+        let otherURL = "http://159.65.54.39/";
+        if (url != otherURL) {
+          _retrieveDataFromEDI(otherURL);
+        } else {
+          setIsEDIData(false);
+          setEDIdata(null);
+        }
+      });
+  };
 
   function copyPublicKeyToClipboard() {
     if (nfcResult && nfcResult.publicKey) {
@@ -146,20 +236,64 @@ const Main = (props) => {
     }
     setNfcResult(null);
     setIsWorking(false);
+    setIsEDIData(false);
   }
 
   const handlePressSetting = async () => {
     await cancelNfcOperation();
     navigation.navigate(SCREENS.SETTINGS);
-    // setVerifyResult(false);
-    // setNfcResult(null);
-    // setViewMode("create");
+  };
+
+  const onEditMetaData2 = () => {
+    verifyTagLabel = "VERIFY TAG";
+    verifyButtonStyle = "normal";
+    setEDIdata(null);
+    // setVerifyResult(null);
+    setIsEDIData(false);
+    setWorkStatusMessage("");
+
+    props.navigation.navigate(SCREENS.REGISTER_TAGS, {
+      nfcResult: nfcResult,
+      from: "edit",
+      EDIData: EDIData,
+    });
+  };
+
+  const onDeleteMetaData2 = async (url) => {
+    let headers = {
+      publickey: bytesToHex(nfcResult?.publicKey),
+      challenge: bytesToHex(nfcResult?.challenge),
+      signature: bytesToHex(nfcResult?.signature),
+    };
+    removingMetadata(url, headers, sha256(nfcResult.publicKey))
+      .then(() => {
+        setEDIdata(null);
+        isEDIData(false);
+
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Tag deleted successfully",
+          topOffset: 70,
+        });
+        cancelNfcOperation();
+      })
+      .catch((error) => {
+        let otherURL = "http://159.65.54.39/";
+        if (url != otherURL) {
+          onDeleteMetaData2(otherURL);
+        } else {
+          setIsEDIData(false);
+          setEDIdata(null);
+        }
+        cancelNfcOperation();
+      });
+    return;
   };
 
   let tagsPublicKey =
     nfcResult && nfcResult.publicKey ? sha256(nfcResult.publicKey) : "";
-  let verifyButtonStyle = "normal";
-  let verifyTagLabel = "VERIFY TAG";
+
   if (isWorking) {
     verifyButtonStyle = "working";
   } else if (nfcResult && nfcResult.signature) {
@@ -175,7 +309,8 @@ const Main = (props) => {
     <View style={styles.container}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 0.8 }}
+        // style={{ flex: 0.8 }}
+        nestedScrollEnabled
       >
         <View style={{ padding: 40 }}>
           <Image
@@ -195,35 +330,51 @@ const Main = (props) => {
             btnStyle={verifyButtonStyle}
           />
         </View>
-        {tagsPublicKey && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.hashKeyText}>Public key hash:</Text>
-            <TouchableOpacity onPress={() => copyPublicKeyToClipboard()}>
-              <View style={{ backgroundColor: "white" }}>
-                <Text style={styles.publicHashKeyTxt}>{tagsPublicKey}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-        {lookupResult && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.hashKeyText}>Data on the server:</Text>
-            <View style={{ backgroundColor: "white" }}>
-              <Text style={styles.lookupTxt}>
-                {JSON.stringify(lookupResult, null, 4)}
-              </Text>
+        <View style={{ paddingHorizontal: 10 }}>
+          {tagsPublicKey && (
+            <View style={{ marginTop: 20 }}>
+              <Text style={styles.hashKeyText}>Public key hash:</Text>
+              <TouchableOpacity onPress={() => copyPublicKeyToClipboard()}>
+                <View style={{ backgroundColor: "white" }}>
+                  <Text style={styles.publicHashKeyTxt}>{tagsPublicKey}</Text>
+                </View>
+              </TouchableOpacity>
             </View>
-          </View>
-        )}
+          )}
+
+          {isEDIData && (
+            <NFTDisplayMetadata2
+              data={EDIData}
+              onDeleteMetaData2={() =>
+                Alert.alert("Alert", "Are you to remove data?", [
+                  {
+                    text: "Cancel",
+                    onPress: () => console.log("Cancel Pressed"),
+                    style: "cancel",
+                  },
+                  {
+                    text: "OK",
+                    onPress: () => onDeleteMetaData2("http://138.68.190.112/"),
+                  },
+                ])
+              }
+              onEditMetaData2={onEditMetaData2}
+              identityHash={identityHash}
+            />
+          )}
+          {lookupResult?.metadata && <NFTDisplay data={lookupResult} />}
+        </View>
+        <View style={{ height: 150, width: "100%" }} />
       </ScrollView>
-      <View style={styles.settingIconContainer}>
-        <TouchableOpacity onPress={handlePressSetting}>
-          <Image
-            source={IMAGES.settingIcon}
-            style={{ height: 80, width: 80 }}
-          />
-        </TouchableOpacity>
-      </View>
+
+      {/* <View style={styles.settingIconContainer}> */}
+      <TouchableOpacity
+        onPress={handlePressSetting}
+        style={styles.settingIconContainer}
+      >
+        <Image source={IMAGES.settingIcon} style={{ height: 80, width: 80 }} />
+      </TouchableOpacity>
+      {/* </View> */}
     </View>
   );
 };
@@ -237,12 +388,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   settingIconContainer: {
-    flex: 0.2,
-    flexDirection: "row",
-    backgroundColor: "#010523",
+    // backgroundColor: "#010523",
     alignItems: "center",
-    justifyContent: "flex-end",
+
     paddingHorizontal: 30,
+
+    height: 80,
+    width: 80,
+    position: "absolute",
+    bottom: 30,
+    right: 30,
   },
   lookupTxt: {
     padding: 15,

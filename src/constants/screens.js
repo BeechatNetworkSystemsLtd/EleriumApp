@@ -7,4 +7,7 @@ export const SCREENS = {
   CHANGEPASSWORD: "ChangePassword",
   ERASKEYS: "EraseKeys",
   SERVERSETTINGS: "ServerSettings",
+  REGISTER_TAGS: "RegisterTag",
+  PDF_VIEWER: "PdfViewer",
+  MY_CREATED_ASSETS: "myCreatedAssets",
 };
