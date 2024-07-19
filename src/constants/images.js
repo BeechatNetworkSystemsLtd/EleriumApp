@@ -12,4 +12,7 @@ export const IMAGES = {
   image: require("../../assets/image.png"),
   pdf: require("../../assets/pdf.png"),
   video: require("../../assets/video.png"),
+  dropdownIcon: require("../../assets/dropdownIcon.png"),
+  dropdownIcon2: require("../../assets/dropdownIcon2.png"),
+  dropdownIcon3: require("../../assets/dropdownIcon3.png"),
 };

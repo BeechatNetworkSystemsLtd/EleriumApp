@@ -50,6 +50,7 @@ const Main = (props) => {
   const [EDIData, setEDIdata] = React.useState(false);
   const [identityHash, setIdentityHash] = React.useState(null);
   const [identitySecret, setIdentitySecret] = React.useState(null);
+  const [showChallenge, setShowChallenge] = React.useState(null);
   let verifyTagLabel = "VERIFY TAG";
   let verifyButtonStyle = "normal";
 
@@ -82,6 +83,8 @@ const Main = (props) => {
 
   async function generateChallenge() {
     let tmp = crypto.randomBytes(32);
+
+    console.log("challenge --->", sha256(tmp));
     setChallenge(tmp);
   }
 
@@ -334,11 +337,41 @@ const Main = (props) => {
           {tagsPublicKey && (
             <View style={{ marginTop: 20 }}>
               <Text style={styles.hashKeyText}>Public key hash:</Text>
-              <TouchableOpacity onPress={() => copyPublicKeyToClipboard()}>
-                <View style={{ backgroundColor: "white" }}>
-                  <Text style={styles.publicHashKeyTxt}>{tagsPublicKey}</Text>
-                </View>
-              </TouchableOpacity>
+              <View style={styles.publicKeyContainer}>
+                <TouchableOpacity
+                  onPress={() => copyPublicKeyToClipboard()}
+                  style={{ width: "90%" }}
+                >
+                  <View style={{}}>
+                    <Text style={styles.publicHashKeyTxt}>{tagsPublicKey}</Text>
+                  </View>
+                </TouchableOpacity>
+                {/* <View style={styles.verticalLine} /> */}
+                <TouchableOpacity
+                  onPress={() => setShowChallenge(!showChallenge)}
+                  style={styles.dropdownBtn}
+                >
+                  <Image
+                    source={IMAGES.dropdownIcon3}
+                    style={[
+                      styles.dropdownIcon,
+                      showChallenge && { transform: [{ rotate: "180deg" }] },
+                    ]}
+                  />
+                </TouchableOpacity>
+              </View>
+              {showChallenge && (
+                <>
+                  <Text style={[styles.hashKeyText, { marginTop: 20 }]}>
+                    Challenge:
+                  </Text>
+                  <View style={{ backgroundColor: "white", borderRadius: 10 }}>
+                    <Text style={styles.publicHashKeyTxt}>
+                      {sha256(challenge)}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -407,5 +440,28 @@ const styles = StyleSheet.create({
   publicHashKeyTxt: {
     color: "black",
     padding: 15,
+  },
+  publicKeyContainer: {
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 10,
+  },
+  verticalLine: {
+    height: "100%",
+    width: 2,
+    backgroundColor: COLORS.secondary,
+  },
+  dropdownIcon: {
+    height: 25,
+    width: 25,
+    resizeMode: "contain",
+    // tintColor: COLORS.primary,
+  },
+  dropdownBtn: {
+    width: "10%",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
