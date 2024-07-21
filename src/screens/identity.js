@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Share from "react-native-share";
-import { Platform, View, Text, Alert, StyleSheet } from "react-native";
+import {
+  Platform,
+  View,
+  Text,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 import SButton from "../components/button";
 import { Buffer } from "buffer/";
 import {
@@ -16,12 +24,21 @@ import DocumentPicker from "react-native-document-picker";
 import RNFS from "react-native-fs";
 import Header from "../components/header";
 import { SCREENS } from "../constants/screens";
+import Modal from "react-native-modal";
+import CustomTextInput from "../components/textInput";
+import Toast from "react-native-toast-message";
+import { IMAGES } from "../constants/images";
+import { retrievingMetadata } from "../services/HttpUtils";
+import AppLoading from "../components/AppLoader";
 const Identity = (props) => {
   const { navigation } = props;
 
   const [fileHash, setFileHash] = useState("");
   const [bufferLength, setBufferLength] = useState(0);
   const [identityHash, setIdentityHash] = React.useState(null);
+  const [enterPublicKey, setEnterPublicKey] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const buffer = Buffer.from(fileHash, "hex");
@@ -217,9 +234,77 @@ const Identity = (props) => {
     navigation.navigate(SCREENS.MY_CREATED_ASSETS);
   };
 
+  const handlePostNewTag = () => {
+    setShowModal(true);
+  };
+  const handleOnProceed = () => {
+    if (enterPublicKey.trim() == "") {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please Enter or paste public key.",
+        topOffset: 70,
+      });
+    } else {
+      closeModal();
+      setTimeout(() => {
+        _retrieveDataFromEDI("http://138.68.190.112/");
+      }, 500);
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEnterPublicKey("");
+  };
+
+  const _retrieveDataFromEDI = (url) => {
+    setIsLoading(true);
+    retrievingMetadata(url, (headers = {}), enterPublicKey)
+      .then((res) => {
+        if (res?.data == "" || res?.data == null) {
+          setIsLoading(false);
+          let temp = Buffer.from(enterPublicKey, "hex");
+
+          props.navigation.navigate(SCREENS.REGISTER_TAGS, {
+            nfcResult: { publicKey: temp.toJSON().data },
+          });
+        } else {
+          setIsLoading(false);
+
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Tag already exists",
+            topOffset: 70,
+          });
+        }
+      })
+      .catch((error) => {
+        console.log(url, "error while finding ", error);
+
+        let otherURL = "http://159.65.54.39/";
+        if (url != otherURL) {
+          _retrieveDataFromEDI(otherURL);
+        } else {
+          setIsLoading(false);
+
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Something went wrong",
+            topOffset: 70,
+          });
+        }
+      });
+  };
+
+  console.log("data2 ", enterPublicKey);
+
   return (
     <View style={styles.container}>
       <Header navigation={navigation} title={"Identity"} />
+      {AppLoading(isLoading)}
       <View style={styles.contentContainer}>
         <View style={styles.btnContainer}>
           {/* Buttons for Identity actions */}
@@ -236,6 +321,16 @@ const Identity = (props) => {
               <SButton
                 title="Create New Identity"
                 onPress={createIdentity} // Referencing the existing createIdentity function
+                btnStyle={"normal"}
+              />
+            </View>
+          )}
+
+          {identityHash && (
+            <View style={styles.btnContainer}>
+              <SButton
+                title="Post new Tag"
+                onPress={handlePostNewTag} // Referencing the existing createIdentity function
                 btnStyle={"normal"}
               />
             </View>
@@ -279,6 +374,36 @@ const Identity = (props) => {
           </View>
         </View>
       </View>
+      <Modal
+        isVisible={showModal}
+        onBackdropPress={closeModal}
+        onBackButtonPress={closeModal}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalHeading}>Enter/Paste public key</Text>
+
+          <View style={styles.textInputContainer}>
+            <CustomTextInput
+              onChangeText={setEnterPublicKey}
+              value={enterPublicKey}
+              customStyle={{}}
+              placeholder={"Public Key"}
+            />
+          </View>
+          <SButton
+            title="Proceed"
+            btnStyle={"normal"}
+            onPress={handleOnProceed}
+          />
+          <TouchableOpacity
+            style={styles.closeBtn}
+            hitSlop={{ left: 15, top: 15, right: 15, bottom: 15 }}
+            onPress={closeModal}
+          >
+            <Image source={IMAGES.closeIcon} style={styles.closeIcon} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -295,5 +420,36 @@ const styles = StyleSheet.create({
   btnContainer: {
     paddingTop: 10,
     paddingBottom: 10,
+  },
+  modalContainer: {
+    padding: 20,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingTop: 40,
+  },
+  modalHeading: {
+    color: COLORS.black,
+    fontSize: 16,
+    alignSelf: "center",
+    fontWeight: "bold",
+    marginVertical: 5,
+  },
+  textInputContainer: {
+    borderColor: COLORS.secondary,
+    borderWidth: 2,
+    width: "100%",
+    borderRadius: 10,
+    overflow: "hidden",
+
+    marginVertical: 20,
+  },
+  closeBtn: {
+    position: "absolute",
+    right: 20,
+    top: 20,
+  },
+  closeIcon: {
+    height: 20,
+    width: 20,
   },
 });

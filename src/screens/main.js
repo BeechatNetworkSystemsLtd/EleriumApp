@@ -186,22 +186,10 @@ const Main = (props) => {
     verifySignature();
   }, [nfcResult, tagRegistryURL]);
 
-  //verify signature
-
-  const verifyTagOwner = async () => {
-    console.log(
-      "varify tag 1111111111111",
-      await dilithiumVerifySig({
-        publicKey: identityHash, //user public key
-        challenge: nfcResult.challenge,
-        signature: nfcResult.signature,
-      })
-    );
-  };
-
   //handle retrieve data from EDI
 
   const _retrieveDataFromEDI = (url) => {
+    console.log("data1 ", nfcResult.publicKey);
     retrievingMetadata(url, (headers = {}), sha256(nfcResult.publicKey))
       .then((res) => {
         if (res?.data == "" || res?.data == null) {
@@ -211,7 +199,6 @@ const Main = (props) => {
         } else {
           setEDIdata(res?.data?.data);
           setIsEDIData(true);
-          verifyTagOwner();
         }
       })
       .catch((error) => {

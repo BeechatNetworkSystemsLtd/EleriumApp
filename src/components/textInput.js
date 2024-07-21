@@ -10,6 +10,7 @@ const CustomTextInput = (props) => {
       value={props.value}
       style={[props.style, { ...props.customStyle }]}
       editable={props.editable}
+      placeholder={props.placeholder}
     />
   );
 };

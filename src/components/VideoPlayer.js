@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
       backgroundColor: COLORS.white,
       borderRadius: 10,
     },
-    durationText: {
-      color: COLORS.black,
-    },
+    // durationText: {
+    //   color: COLORS.black,
+    // },
     seekBar: { backgroundColor: COLORS.white },
     seekBarFullWidth: {},
     seekBarProgress: { backgroundColor: COLORS.borderColor },

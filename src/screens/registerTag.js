@@ -176,6 +176,8 @@ const RegisterTag = (props) => {
       metadata2: { ...metadata },
     });
 
+    console.log("payload ", metadata2);
+
     let headers = {
       publicKey: identityHash, //user public key
       challenge: sha256(nfcResult.publicKey),
@@ -200,7 +202,7 @@ const RegisterTag = (props) => {
         }, 100);
       })
       .catch((error) => {
-        console.log("error on add  ", error?.message);
+        console.log("error on add  ", error);
         let otherURL = "http://159.65.54.39/"; ///if request fails for previous url then call with new url
         if (otherURL != url) _handleRegisterTag(otherURL);
         else {
