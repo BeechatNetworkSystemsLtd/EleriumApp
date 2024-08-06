@@ -83,8 +83,6 @@ const Main = (props) => {
 
   async function generateChallenge() {
     let tmp = crypto.randomBytes(32);
-
-    console.log("challenge --->", sha256(tmp));
     setChallenge(tmp);
   }
 
@@ -189,7 +187,6 @@ const Main = (props) => {
   //handle retrieve data from EDI
 
   const _retrieveDataFromEDI = (url) => {
-    console.log("data1 ", nfcResult.publicKey);
     retrievingMetadata(url, (headers = {}), sha256(nfcResult.publicKey))
       .then((res) => {
         if (res?.data == "" || res?.data == null) {

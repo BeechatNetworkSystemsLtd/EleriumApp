@@ -35,7 +35,7 @@ import RNSecureKeyStore, { ACCESSIBLE } from "react-native-secure-key-store";
 import { dilithiumGenKeyPair, dilithiumSign } from "@beechatnetwork/lib-dqx";
 import { randomBytes } from "react-native-randombytes";
 import DeviceInfo from "react-native-device-info";
-
+import AppLoading from "../components/AppLoader";
 const RegisterTag = (props) => {
   const { navigation } = props;
   const from = props?.route?.params?.from;
@@ -51,7 +51,7 @@ const RegisterTag = (props) => {
   const [identityHash, setIdentityHash] = React.useState(null);
   const [identitySecret, setIdentitySecret] = React.useState(null);
   const [nfcPublicKey, setnfcPublicKey] = React.useState("");
-
+  const [isLoading, setIsLoading] = useState(false);
   const handleAttributeChange = (text, index) => {
     const newData = [...tagsData];
     newData[index].attribute = text;
@@ -150,6 +150,8 @@ const RegisterTag = (props) => {
 
   //handle register tags
   const _handleRegisterTag = async (url) => {
+    setIsLoading(true);
+
     let deviceID = await DeviceInfo.getUniqueId();
 
     let base64_data = await convertToBase64(selectedFile);
@@ -175,9 +177,6 @@ const RegisterTag = (props) => {
       metadata1: bytesToHex(nfcResult.publicKey),
       metadata2: { ...metadata },
     });
-
-    console.log("payload ", metadata2);
-
     let headers = {
       publicKey: identityHash, //user public key
       challenge: sha256(nfcResult.publicKey),
@@ -191,6 +190,7 @@ const RegisterTag = (props) => {
     };
     addingMetadata(url, metadata2, headers)
       .then((res) => {
+        setIsLoading(false);
         Toast.show({
           type: "success",
           text1: "Success",
@@ -206,6 +206,7 @@ const RegisterTag = (props) => {
         let otherURL = "http://159.65.54.39/"; ///if request fails for previous url then call with new url
         if (otherURL != url) _handleRegisterTag(otherURL);
         else {
+          setIsLoading(false);
           Toast.show({
             type: "error",
             text1: "Error",
@@ -217,6 +218,7 @@ const RegisterTag = (props) => {
   };
 
   const handleEditTag = async (url) => {
+    setIsLoading(true);
     let deviceID = await DeviceInfo.getUniqueId();
     let base64_data = await convertToBase64(selectedFile);
 
@@ -258,6 +260,7 @@ const RegisterTag = (props) => {
 
     updatingMetadata(url, headers, metadata2, sha256(nfcPublicKey))
       .then((res) => {
+        setIsLoading(false);
         Toast.show({
           type: "success",
           text1: "Success",
@@ -272,6 +275,7 @@ const RegisterTag = (props) => {
         let otherURL = "http://159.65.54.39/"; ///if request fails for previous url then call with new url
         if (otherURL != url) handleEditTag(otherURL);
         else {
+          setIsLoading(false);
           Toast.show({
             type: "error",
             text1: "Error",
@@ -389,6 +393,7 @@ const RegisterTag = (props) => {
 
   return (
     <View style={styles.container}>
+      {AppLoading(isLoading)}
       <KeyboardAwareScrollView
         contentContainerStyle={{ flex: 1 }}
         scrollEnabled={false}

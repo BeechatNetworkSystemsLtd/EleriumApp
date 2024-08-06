@@ -260,14 +260,14 @@ const Identity = (props) => {
 
   const _retrieveDataFromEDI = (url) => {
     setIsLoading(true);
-    retrievingMetadata(url, (headers = {}), enterPublicKey)
+    let tempValue = Buffer.from(enterPublicKey, "hex").toJSON().data;
+
+    retrievingMetadata(url, (headers = {}), sha256(tempValue))
       .then((res) => {
         if (res?.data == "" || res?.data == null) {
           setIsLoading(false);
-          let temp = Buffer.from(enterPublicKey, "hex");
-
           props.navigation.navigate(SCREENS.REGISTER_TAGS, {
-            nfcResult: { publicKey: temp.toJSON().data },
+            nfcResult: { publicKey: tempValue },
           });
         } else {
           setIsLoading(false);
@@ -298,8 +298,6 @@ const Identity = (props) => {
         }
       });
   };
-
-  console.log("data2 ", enterPublicKey);
 
   return (
     <View style={styles.container}>
