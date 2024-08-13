@@ -1,22 +1,9 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
-import { COLORS } from "../constants/colors";
-import FileViewer from "../screens/fileViewer";
-import SButton from "./button";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import DeviceInfo from "react-native-device-info";
+import { COLORS } from "../constants/colors";
 
-const NFTDisplayMetadata2 = ({
-  data,
-  onDeleteMetaData2,
-  onEditMetaData2,
-  identityHash,
-}) => {
+const NFTDisplayData = ({ nft_airdrop_response }) => {
   const [deviceID, setDeviceID] = useState(null);
 
   useEffect(() => {
@@ -28,7 +15,7 @@ const NFTDisplayMetadata2 = ({
     fetchDeviceID();
   }, []);
 
-  if (data === null) {
+  if (nft_airdrop_response === null) {
     return (
       <ScrollView style={styles.scrollView}>
         <View style={styles.container}>
@@ -38,30 +25,17 @@ const NFTDisplayMetadata2 = ({
     );
   }
 
-  const filteredMetadata = Object.keys(data?.metadata2)
+  const filteredMetadata = Object.keys(nft_airdrop_response)
     .filter((key) => !["file", "identityHash", "nfcPublickey"].includes(key))
     .reduce((obj, key) => {
-      obj[key] = data?.metadata2[key];
+      obj[key] = nft_airdrop_response[key];
       return obj;
     }, {});
 
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
-        {data?.metadata2?.hasOwnProperty("file") && (
-          <FileViewer data={data?.metadata2?.file} />
-        )}
         <View style={styles.attributesContainer}>
-          {/* {Object.entries(data?.metadata2)?.map(([key, value]) => {
-            return key === "file" ||
-              key === "identityHash" ||
-              key === "nfcPublickey" ? null : (
-              <View key={key} style={styles.attributeRow}>
-                <Text style={styles.attributeName}>{key}:</Text>
-                <Text style={styles.attributeValue}>{String(value)}</Text>
-              </View>
-            );
-          })} */}
           <Text style={[styles.attributeName, { marginTop: 15, fontSize: 20 }]}>
             Metadata{" "}
           </Text>
@@ -70,21 +44,11 @@ const NFTDisplayMetadata2 = ({
             <Text
               selectable
               style={[styles.attributeName, { marginTop: 15, fontSize: 14 }]}
-            >{`${key}: ${value}`}</Text>
+            >{`${key}: ${JSON.stringify(value)}`}</Text>
             // </TouchableOpacity>
           ))}
         </View>
       </View>
-      {deviceID == data?.metadata2?.identityHash && (
-        <View style={styles.actionBtnsContainer}>
-          <View style={styles.btnContainer}>
-            <SButton title={"Edit"} onPress={onEditMetaData2} />
-          </View>
-          <View style={styles.btnContainer}>
-            <SButton title={"Delete"} onPress={onDeleteMetaData2} />
-          </View>
-        </View>
-      )}
     </ScrollView>
   );
 };
@@ -147,4 +111,4 @@ const styles = StyleSheet.create({
   // Add other style definitions as needed
 });
 
-export default NFTDisplayMetadata2;
+export default NFTDisplayData;

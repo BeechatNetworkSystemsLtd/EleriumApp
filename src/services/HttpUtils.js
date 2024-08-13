@@ -144,3 +144,30 @@ export async function getMyAssets(baseUrl, headers, hashedPublicKey) {
     throw error;
   }
 }
+
+export async function uploadWallet(data) {
+  console.log("payload ", data);
+
+  let config = {
+    method: "POST",
+    url: "http://138.68.142.59:5000/wallet",
+    data: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  try {
+    try {
+      const response = await axios.request(config);
+
+      console.log("respose from addd ", response);
+      return response;
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error:", error.message);
+    throw error;
+  }
+}

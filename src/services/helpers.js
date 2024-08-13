@@ -6,6 +6,27 @@ function hexToBytes(hex) {
   return bytes;
 }
 
+function hexToBytesIOS(hex) {
+  // Remove hyphens
+  hex = hex.replace(/-/g, "");
+
+  let bytes = [];
+  for (let c = 0; c < hex.length; c += 2) {
+    bytes.push(parseInt(hex.substr(c, 2), 16));
+  }
+
+  // Adjust the byte array to be exactly 32 bytes long
+  if (bytes.length > 32) {
+    bytes = bytes.slice(-32); // Truncate to last 32 bytes if too long
+  } else {
+    while (bytes.length < 32) {
+      bytes.unshift(0); // Pad with leading zeros if too short
+    }
+  }
+
+  return bytes;
+}
+
 function bytesToHex(bytes) {
   let hex, i;
   for (hex = [], i = 0; i < bytes.length; i++) {
@@ -17,4 +38,4 @@ function bytesToHex(bytes) {
   return hex.join("");
 }
 
-export { hexToBytes, bytesToHex };
+export { hexToBytes, bytesToHex, hexToBytesIOS };

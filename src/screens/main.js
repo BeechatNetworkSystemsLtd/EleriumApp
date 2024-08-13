@@ -19,7 +19,7 @@ import {
 } from "@beechatnetwork/lib-dqx";
 import Clipboard from "@react-native-clipboard/clipboard";
 import NfcManager from "react-native-nfc-manager";
-import { bytesToHex } from "../services/helpers";
+import { bytesToHex, hexToBytes, hexToBytesIOS } from "../services/helpers";
 import { IMAGES } from "../constants/images";
 import { COLORS } from "../constants/colors";
 import { SCREENS } from "../constants/screens";
@@ -29,6 +29,7 @@ import {
   doLookupTag,
   removingMetadata,
   retrievingMetadata,
+  uploadWallet,
 } from "../services/HttpUtils";
 import { sha256 } from "js-sha256";
 import NFTDisplay from "../components/NFTDisplay";
@@ -37,6 +38,7 @@ import Toast from "react-native-toast-message";
 const dimensions = Dimensions.get("window");
 import RNSecureKeyStore, { ACCESSIBLE } from "react-native-secure-key-store";
 import DeviceInfo from "react-native-device-info";
+import NFTDisplayData from "../components/nftDisplayData";
 const Main = (props) => {
   const { navigation } = props;
   const [isWorking, setIsWorking] = React.useState(false);
@@ -51,6 +53,8 @@ const Main = (props) => {
   const [identityHash, setIdentityHash] = React.useState(null);
   const [identitySecret, setIdentitySecret] = React.useState(null);
   const [showChallenge, setShowChallenge] = React.useState(null);
+  const [nft_airdrop_response, set_nft_airdrop_response] = React.useState(null);
+
   let verifyTagLabel = "VERIFY TAG";
   let verifyButtonStyle = "normal";
 
@@ -82,8 +86,12 @@ const Main = (props) => {
   }
 
   async function generateChallenge() {
-    let tmp = crypto.randomBytes(32);
-    setChallenge(tmp);
+    // let tmp = crypto.randomBytes(32);
+
+    let deviceId = await DeviceInfo.getUniqueId();
+    let hash = crypto.createHash("sha256").update(deviceId).digest();
+    let truncatedHash = hash.slice(0, 32);
+    setChallenge(truncatedHash);
   }
 
   React.useEffect(() => {
@@ -155,13 +163,49 @@ const Main = (props) => {
   React.useEffect(() => {
     async function verifySignature() {
       if (nfcResult && nfcResult.signature) {
-        setVerifyResult(
-          await dilithiumVerifySig({
-            publicKey: nfcResult.publicKey,
-            challenge: nfcResult.challenge,
-            signature: nfcResult.signature,
+        let verifiedSignature = await dilithiumVerifySig({
+          publicKey: nfcResult.publicKey,
+          challenge: nfcResult.challenge,
+          signature: nfcResult.signature,
+        });
+
+        console.log("verified signature", verifiedSignature);
+
+        setVerifyResult(verifiedSignature);
+        let deviceId = await DeviceInfo.getUniqueId();
+        let data = {
+          dilithium2_signature: bytesToHex(nfcResult.signature),
+          // dilithium2_signature:
+          //   "2e3f8dbda5a4b29b3b6e4f68e279e8bcda96ddf0565240f59eb5a2e91a365a55d22cde5c5f38e56eab346a8b9a79c432",
+          hash_of_tag: sha256(nfcResult.publicKey),
+          uuid: deviceId,
+        };
+        console.log("payload is ", data);
+
+        uploadWallet(data)
+          .then((res) => {
+            console.log("reponse from upload ", res.data);
+            set_nft_airdrop_response(res.data.nft_airdrop_response);
           })
-        );
+          .catch((error) => {
+            console.log(
+              "error on upload- ",
+              error.message == "Request failed with status code 403"
+            );
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2:
+                error.message == "Request failed with status code 403"
+                  ? "Signature already used"
+                  : "Something went wrong with server",
+              topOffset: 70,
+            });
+
+            set_nft_airdrop_response(null);
+          });
+        return;
+
         let lookupRes = null;
         if (tagRegistryURL) {
           lookupRes = await doLookupTag({
@@ -359,6 +403,11 @@ const Main = (props) => {
             </View>
           )}
 
+          {nft_airdrop_response && (
+            <NFTDisplayData nft_airdrop_response={nft_airdrop_response} />
+          )}
+
+          {/*  
           {isEDIData && (
             <NFTDisplayMetadata2
               data={EDIData}
@@ -380,17 +429,18 @@ const Main = (props) => {
             />
           )}
           {lookupResult?.metadata && <NFTDisplay data={lookupResult} />}
+          */}
         </View>
         <View style={{ height: 150, width: "100%" }} />
       </ScrollView>
 
       {/* <View style={styles.settingIconContainer}> */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={handlePressSetting}
         style={styles.settingIconContainer}
       >
         <Image source={IMAGES.settingIcon} style={{ height: 80, width: 80 }} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       {/* </View> */}
     </View>
   );
