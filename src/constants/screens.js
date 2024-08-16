@@ -10,4 +10,5 @@ export const SCREENS = {
   REGISTER_TAGS: "RegisterTag",
   PDF_VIEWER: "PdfViewer",
   MY_CREATED_ASSETS: "myCreatedAssets",
+  NFT_SALONA_ACCOUNT: "nftSalonaAccount",
 };

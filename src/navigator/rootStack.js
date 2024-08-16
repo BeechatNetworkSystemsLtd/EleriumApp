@@ -15,6 +15,8 @@ import RegisterTag from "../screens/registerTag";
 import PdfViewer from "../screens/fileViewer";
 import MyCreatedAssets from "../screens/myCreatedAssets";
 
+import NFTSolanaAccount from "../screens/NFTSolanaAccount";
+
 const {
   MAIN,
   SETTINGS,
@@ -27,6 +29,7 @@ const {
   REGISTER_TAGS,
   PDF_VIEWER,
   MY_CREATED_ASSETS,
+  NFT_SALONA_ACCOUNT,
 } = SCREENS;
 
 const RootStack = () => {
@@ -35,10 +38,14 @@ const RootStack = () => {
   return (
     <NavigationContainer>
       <MainStack.Navigator
-        initialRouteName={MAIN}
+        initialRouteName={NFT_SALONA_ACCOUNT}
         // initialRouteName={REGISTER_TAGS}
         screenOptions={{ headerShown: false, animation: "fade" }}
       >
+        <MainStack.Screen
+          component={NFTSolanaAccount}
+          name={NFT_SALONA_ACCOUNT}
+        />
         <MainStack.Screen component={Main} name={MAIN} />
         <MainStack.Screen component={Settings} name={SETTINGS} />
         <MainStack.Screen component={Identity} name={IDENTITY} />
