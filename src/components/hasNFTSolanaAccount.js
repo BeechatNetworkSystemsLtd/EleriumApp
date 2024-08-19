@@ -6,6 +6,10 @@ import CustomTextInput from "./textInput";
 const HasNFTSolanaAccount = ({ onClose, onEnterNFTPublicKey }) => {
   const [enteredPublicKey, setEnteredPublicKey] = useState("");
   const [showInput, setShowInput] = useState(false);
+
+  const handleEnterPublicKey = () => {
+    onEnterNFTPublicKey(enteredPublicKey);
+  };
   return (
     <View style={styles.container}>
       <Text style={styles.headingTxt}>
@@ -30,9 +34,7 @@ const HasNFTSolanaAccount = ({ onClose, onEnterNFTPublicKey }) => {
           <SButton
             title={"Yes"}
             onPress={() =>
-              showInput
-                ? onEnterNFTPublicKey(enteredPublicKey)
-                : setShowInput(true)
+              showInput ? handleEnterPublicKey() : setShowInput(true)
             }
           />
         </View>

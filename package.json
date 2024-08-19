@@ -13,10 +13,12 @@
   "dependencies": {
     "@beechatnetwork/lib-dqx": "^0.0.8",
     "@gorhom/bottom-sheet": "^4.6.1",
+    "@metaplex/js": "^4.12.0",
     "@react-native-async-storage/async-storage": "^1.19.1",
     "@react-native-clipboard/clipboard": "^1.11.2",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
+    "@solana/web3.js": "^1.95.2",
     "@tradle/react-native-http": "^2.0.0",
     "assert": "^2.0.0",
     "axios": "^1.4.0",

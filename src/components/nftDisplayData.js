@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import DeviceInfo from "react-native-device-info";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../constants/colors";
+import { getNFTLink } from "../services/HttpUtils";
 
-const NFTDisplayData = ({ nft_airdrop_response }) => {
-  const [deviceID, setDeviceID] = useState(null);
+const NFTDisplayData = ({ nft_airdrop_response, NFTResult }) => {
+  console.log("_______________", NFTResult);
+
+  const [imageLinks, setImageLinks] = useState([]);
 
   useEffect(() => {
-    const fetchDeviceID = async () => {
-      const id = await DeviceInfo.getUniqueId();
-
-      setDeviceID(id);
+    const handleGetLinks = async () => {
+      if (Array.isArray(NFTResult)) {
+        try {
+          const links = await Promise.all(
+            NFTResult.map(async (nft) => {
+              const link = await getNFTLink(nft.uri);
+              return link?.data?.image;
+            })
+          );
+          setImageLinks(links);
+        } catch (error) {
+          console.error("Error fetching NFT links:", error);
+        }
+      }
     };
-    fetchDeviceID();
-  }, []);
+
+    handleGetLinks();
+  }, [NFTResult]);
 
   if (nft_airdrop_response === null) {
     return (
@@ -40,18 +53,44 @@ const NFTDisplayData = ({ nft_airdrop_response }) => {
             Metadata{" "}
           </Text>
           {Object.entries(filteredMetadata).map(([key, value]) => (
-            // <TouchableOpacity key={key}>
             <Text
+              key={key}
               selectable
               style={[styles.attributeName, { marginTop: 15, fontSize: 14 }]}
             >{`${key}: ${JSON.stringify(value)}`}</Text>
-            // </TouchableOpacity>
           ))}
         </View>
+
+        <View style={{ height: 20 }} />
+        <Text style={[styles.attributeName, { marginTop: 15, fontSize: 20 }]}>
+          NFT Data{" "}
+        </Text>
+
+        {NFTResult &&
+          NFTResult.map((nft, index) => (
+            <View key={index} style={styles.NFTContainer}>
+              {console.log("imageLinks[index]", imageLinks[index])}
+              {imageLinks[index] ? (
+                <Image
+                  source={{ uri: imageLinks[index] }}
+                  // source={{
+                  //   uri: "https://www.jbl.com/dw/image/v2/BFND_PRD/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw54c510f0/pdp/google-home-link20-03.png?sw=904&sh=560",
+                  // }}
+                  style={styles.nftImage}
+                />
+              ) : null}
+              <View style={{}}>
+                <Text style={styles.attributes}>Name: {nft.name ?? ""}</Text>
+                <Text style={styles.attributes}>Mint: {nft.mint ?? ""}</Text>
+              </View>
+            </View>
+          ))}
       </View>
     </ScrollView>
   );
 };
+
+export default NFTDisplayData;
 
 const styles = StyleSheet.create({
   scrollView: {
@@ -97,18 +136,28 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.white,
   },
-  attributeValue: {
-    flex: 1,
-    textAlign: "right",
+
+  NFTContainer: {
+    // flexDirection: "row",
+    // justifyContent: "space-between",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    // borderBottomColor: "#eaeaea",
+  },
+  nftImage: {
+    height: 220,
+    width: 220,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginVertical: 10,
+  },
+  attributes: {
     color: COLORS.white,
+    fontSize: 16,
+    marginVertical: 5,
+    fontWeight: "bold",
   },
-  actionBtnsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  btnContainer: { height: 70, width: "35%" },
+
   // Add other style definitions as needed
 });
-
-export default NFTDisplayData;

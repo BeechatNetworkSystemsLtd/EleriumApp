@@ -1,5 +1,12 @@
 import axios from "axios";
 
+import { Connection, PublicKey } from "@solana/web3.js";
+import { programs } from "@metaplex/js";
+
+const {
+  metadata: { Metadata },
+} = programs;
+
 export async function doServerAuth({ serverAddr, email, password }) {
   let res = await axios.post(serverAddr + "/api/login", {
     email,
@@ -146,8 +153,6 @@ export async function getMyAssets(baseUrl, headers, hashedPublicKey) {
 }
 
 export async function uploadWallet(data) {
-  console.log("payload ", data);
-
   let config = {
     method: "POST",
     url: "http://138.68.142.59:5000/wallet",
@@ -160,7 +165,6 @@ export async function uploadWallet(data) {
     try {
       const response = await axios.request(config);
 
-      console.log("respose from addd ", response);
       return response;
     } catch (error) {
       console.error("Fetch Error:", error);
@@ -171,3 +175,37 @@ export async function uploadWallet(data) {
     throw error;
   }
 }
+
+export const getNFTs = async (publicKey) => {
+  const connection = new Connection("https://api.mainnet-beta.solana.com");
+  const pubKey = new PublicKey(publicKey);
+  const nfts = await Metadata.findDataByOwner(connection, pubKey);
+
+  return nfts.map((nft) => ({
+    mint: nft.mint,
+    name: nft.data.name,
+    uri: nft.data.uri,
+  }));
+};
+export const getNFTLink = async (link) => {
+  let config = {
+    method: "GET",
+    maxBodyLength: Infinity,
+    url: link,
+    headers: {},
+  };
+
+  try {
+    try {
+      const response = await axios.request(config);
+
+      return response;
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error:", error.message);
+    throw error;
+  }
+};
