@@ -4,30 +4,6 @@ import { COLORS } from "../constants/colors";
 import { getNFTLink } from "../services/HttpUtils";
 
 const NFTDisplayData = ({ nft_airdrop_response, NFTResult }) => {
-  console.log("_______________", NFTResult);
-
-  const [imageLinks, setImageLinks] = useState([]);
-
-  useEffect(() => {
-    const handleGetLinks = async () => {
-      if (Array.isArray(NFTResult)) {
-        try {
-          const links = await Promise.all(
-            NFTResult.map(async (nft) => {
-              const link = await getNFTLink(nft.uri);
-              return link?.data?.image;
-            })
-          );
-          setImageLinks(links);
-        } catch (error) {
-          console.error("Error fetching NFT links:", error);
-        }
-      }
-    };
-
-    handleGetLinks();
-  }, [NFTResult]);
-
   if (nft_airdrop_response === null) {
     return (
       <ScrollView style={styles.scrollView}>
@@ -48,7 +24,7 @@ const NFTDisplayData = ({ nft_airdrop_response, NFTResult }) => {
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
-        <View style={styles.attributesContainer}>
+        {/* <View style={styles.attributesContainer}>
           <Text style={[styles.attributeName, { marginTop: 15, fontSize: 20 }]}>
             Metadata{" "}
           </Text>
@@ -59,7 +35,7 @@ const NFTDisplayData = ({ nft_airdrop_response, NFTResult }) => {
               style={[styles.attributeName, { marginTop: 15, fontSize: 14 }]}
             >{`${key}: ${JSON.stringify(value)}`}</Text>
           ))}
-        </View>
+        </View> */}
 
         <View style={{ height: 20 }} />
         <Text style={[styles.attributeName, { marginTop: 15, fontSize: 20 }]}>
@@ -69,20 +45,17 @@ const NFTDisplayData = ({ nft_airdrop_response, NFTResult }) => {
         {NFTResult &&
           NFTResult.map((nft, index) => (
             <View key={index} style={styles.NFTContainer}>
-              {console.log("imageLinks[index]", imageLinks[index])}
-              {imageLinks[index] ? (
-                <Image
-                  source={{ uri: imageLinks[index] }}
-                  // source={{
-                  //   uri: "https://www.jbl.com/dw/image/v2/BFND_PRD/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw54c510f0/pdp/google-home-link20-03.png?sw=904&sh=560",
-                  // }}
-                  style={styles.nftImage}
-                />
+              {nft?.image ? (
+                <Image source={{ uri: nft?.image }} style={styles.nftImage} />
               ) : null}
+
               <View style={{}}>
-                <Text style={styles.attributes}>Name: {nft.name ?? ""}</Text>
-                <Text style={styles.attributes}>Mint: {nft.mint ?? ""}</Text>
+                <Text style={styles.attributes}>Name: {nft?.name ?? ""}</Text>
+                <Text style={styles.attributes}>
+                  Description: {nft?.description ?? ""}
+                </Text>
               </View>
+              <View style={styles.horizontalLine} />
             </View>
           ))}
       </View>
@@ -142,8 +115,12 @@ const styles = StyleSheet.create({
     // justifyContent: "space-between",
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderBottomWidth: 1,
+
+    marginVertical: 5,
     // borderBottomColor: "#eaeaea",
+    alignItems: "flex-start",
+
+    width: "100%",
   },
   nftImage: {
     height: 220,
@@ -151,12 +128,20 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     alignSelf: "center",
     marginVertical: 10,
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 10,
   },
   attributes: {
     color: COLORS.white,
     fontSize: 16,
     marginVertical: 5,
     fontWeight: "bold",
+  },
+  horizontalLine: {
+    height: 1,
+    width: "100%",
+    backgroundColor: "gray",
   },
 
   // Add other style definitions as needed

@@ -1,8 +1,4 @@
-import {
-  dilithiumGenKeyPair,
-  dilithiumVerifySig,
-  signChallenge,
-} from "@beechatnetwork/lib-dqx";
+import { dilithiumVerifySig, signChallenge } from "@beechatnetwork/lib-dqx";
 import { dqxPerformNFC } from "@beechatnetwork/lib-dqx/rn-api.js";
 import crypto from "crypto";
 import React from "react";
@@ -25,17 +21,17 @@ import { sha256 } from "js-sha256";
 import DeviceInfo from "react-native-device-info";
 import Toast from "react-native-toast-message";
 import NFTDisplayData from "../components/nftDisplayData";
-import { getNFTs, uploadWallet } from "../services/HttpUtils";
+import { getNFTDetails, uploadWallet } from "../services/HttpUtils";
 const dimensions = Dimensions.get("window");
 
 import Modal from "react-native-modal";
-import { randomBytes } from "react-native-randombytes";
+
 import AppLoading from "../components/AppLoader";
 import HasNFTSolanaAccount from "../components/hasNFTSolanaAccount";
 
 import { Keypair } from "@solana/web3.js";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { programs } from "@metaplex/js";
+
+import Clipboard from "@react-native-clipboard/clipboard";
 
 const NFTSolanaAccount = (props) => {
   let verifyTagLabel = "VERIFY TAG";
@@ -55,8 +51,6 @@ const NFTSolanaAccount = (props) => {
   const [NFTRestults, setNFTResults] = React.useState([]);
 
   async function btnPerformSigning() {
-    console.log(">>>>>>>> ", challenge);
-
     setWorkStatusMessage("PLEASE TAP TAG");
     setIsWorking(true);
 
@@ -113,16 +107,13 @@ const NFTSolanaAccount = (props) => {
           challenge: nfcResult.challenge,
           signature: nfcResult.signature,
         });
-
-        console.log("verified signature--", verifiedSignature);
         setVerifyResult(verifiedSignature);
-
         setIsLoading(true);
         let deviceId = await DeviceInfo.getUniqueId();
         let data = {
           dilithium2_signature: bytesToHex(nfcResult.signature),
           // dilithium2_signature:
-          //   "9e3f9dbda8a4b29b3b6e5f68e479e5bcda96ddf0777250f59eb6a2e92a366a55d24cde5c5f37e54eab346a8b9a49c432",
+          //   "9e3f9dbda8a4b29b3b6e5f68e479e5bcda96ddf0787250f59eb6a2e94a366a55d24cde5c5f37e54eab346a8b9a49c432",
           hash_of_tag: sha256(nfcResult.publicKey),
           uuid: deviceId,
           public_key: salonaPublicKey,
@@ -130,10 +121,8 @@ const NFTSolanaAccount = (props) => {
         };
         uploadWallet(data)
           .then(async (res) => {
-            console.log("reponse from upload ", res.data.nft_airdrop_response);
-
             set_nft_airdrop_response(res.data.nft_airdrop_response);
-            handleGetNFTResults(salonaPublicKey);
+            handleGetNFTResults(res.data.nft_airdrop_response.id);
           })
           .catch((error) => {
             console.log(
@@ -161,17 +150,27 @@ const NFTSolanaAccount = (props) => {
     verifySignature();
   }, [nfcResult]);
 
-  const handleGetNFTResults = async (publicKey) => {
+  const handleGetNFTResults = async (NFTId) => {
     setTimeout(async () => {
-      // const NFTs = await getNFTs(
-      //   "9dEYVF9bDQ3wQbjr2BxZchFNYdHyfxVDnXgfzvPqMaAC"
-      // );
-      const NFTs = await getNFTs(publicKey);
+      getNFTDetails(NFTId)
+        .then((res) => {
+          if (res?.data?.onChain?.status == "success") {
+            setNFTResults([res?.data?.metadata]);
+          } else {
+            console.log("NFT Result was not success so i am recalled");
+            handleGetNFTResults(NFTId);
+          }
+          setIsLoading(false);
+        })
 
-      console.log("NFTs  results", NFTs);
-      setNFTResults(NFTs);
-      setIsLoading(false);
-    }, 60000);
+        .catch((error) => {
+          console.log("error  while fetching NFTs ", error);
+          setNFTResults([]);
+          setIsLoading(false);
+        });
+
+      setNFTResults([]);
+    }, 30000);
   };
 
   let tagsPublicKey =
@@ -188,20 +187,20 @@ const NFTSolanaAccount = (props) => {
   const imageWidth = width;
 
   const handleClose = async () => {
-    const { publicKey, secretKey } = await dilithiumGenKeyPair({
-      randomBytes: (size) => {
-        return Buffer.from(randomBytes(size));
-      },
-    });
     const account = Keypair.generate();
     setSalonaPublicKey(account.publicKey);
     setShowNFTSolanaAccount(false);
   };
   const handleEnterNFTPublicKey = (value) => {
-    console.log("value entered ", value);
     setSalonaPublicKey(value);
     setShowNFTSolanaAccount(false);
   };
+  function copyPublicKeyToClipboard(value, message) {
+    if (nfcResult && nfcResult.publicKey) {
+      Clipboard.setString(value);
+      Alert.alert(message);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -235,44 +234,80 @@ const NFTSolanaAccount = (props) => {
 
         <View style={{ paddingHorizontal: 10 }}>
           {tagsPublicKey && (
-            <View style={{ marginTop: 20 }}>
-              <Text style={styles.hashKeyText}>Public key hash:</Text>
-              <View style={styles.publicKeyContainer}>
-                <TouchableOpacity
-                  onPress={() => copyPublicKeyToClipboard()}
-                  style={{ width: "90%" }}
-                >
-                  <View style={{}}>
-                    <Text style={styles.publicHashKeyTxt}>{tagsPublicKey}</Text>
-                  </View>
-                </TouchableOpacity>
-                {/* <View style={styles.verticalLine} /> */}
-                <TouchableOpacity
-                  onPress={() => setShowChallenge(!showChallenge)}
-                  style={styles.dropdownBtn}
-                >
-                  <Image
-                    source={IMAGES.dropdownIcon3}
-                    style={[
-                      styles.dropdownIcon,
-                      showChallenge && { transform: [{ rotate: "180deg" }] },
-                    ]}
-                  />
-                </TouchableOpacity>
+            <>
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.hashKeyText}>Public key hash:</Text>
+                <View style={styles.publicKeyContainer}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      copyPublicKeyToClipboard(
+                        tagsPublicKey,
+                        "Public key was copied to the clipboard!"
+                      )
+                    }
+                    style={{ width: "90%" }}
+                  >
+                    <View style={{}}>
+                      <Text style={styles.publicHashKeyTxt}>
+                        {tagsPublicKey}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  {/* <View style={styles.verticalLine} /> */}
+                  <TouchableOpacity
+                    onPress={() => setShowChallenge(!showChallenge)}
+                    style={styles.dropdownBtn}
+                  >
+                    <Image
+                      source={IMAGES.dropdownIcon3}
+                      style={[
+                        styles.dropdownIcon,
+                        showChallenge && { transform: [{ rotate: "180deg" }] },
+                      ]}
+                    />
+                  </TouchableOpacity>
+                </View>
+                {showChallenge && (
+                  <>
+                    <Text style={[styles.hashKeyText, { marginTop: 20 }]}>
+                      Challenge:
+                    </Text>
+                    <View
+                      style={{ backgroundColor: "white", borderRadius: 10 }}
+                    >
+                      <Text style={styles.publicHashKeyTxt}>
+                        {sha256(challenge)}
+                      </Text>
+                    </View>
+                  </>
+                )}
               </View>
-              {showChallenge && (
-                <>
-                  <Text style={[styles.hashKeyText, { marginTop: 20 }]}>
-                    Challenge:
-                  </Text>
-                  <View style={{ backgroundColor: "white", borderRadius: 10 }}>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.hashKeyText}>Solana Public key:</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    copyPublicKeyToClipboard(
+                      salonaPublicKey.toString(),
+                      "Solana public was copied to the clipboard!"
+                    )
+                  }
+                  style={{ width: "100%" }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: "white",
+                      width: "100%",
+                      borderRadius: 10,
+                    }}
+                  >
                     <Text style={styles.publicHashKeyTxt}>
-                      {sha256(challenge)}
+                      {salonaPublicKey ? salonaPublicKey.toString() : ""}
                     </Text>
                   </View>
-                </>
-              )}
-            </View>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {nft_airdrop_response && (
@@ -281,25 +316,6 @@ const NFTSolanaAccount = (props) => {
               NFTResult={NFTRestults.length > 0 ? NFTRestults : []}
             />
           )}
-          {/* <View style={{ height: 20 }} />
-          <Text>sohi</Text>
-          {NFTRestults.length !== 0 &&
-            NFTRestults.map(async (data) => {
-              const link = await getNFTLink(data.uri);
-              return (
-                <View style={styles.NFTContainer}>
-                  <Image source={{ uri: link.image }} style={styles.nftImage} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.attributes}>
-                      Name:{data?.name ?? ""}
-                    </Text>
-                    <Text style={styles.attributes}>
-                      Mint:{data?.mint ?? ""}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })} */}
         </View>
       </ScrollView>
       <Modal isVisible={showNFTSolanaAccount} avoidKeyboard={true}>

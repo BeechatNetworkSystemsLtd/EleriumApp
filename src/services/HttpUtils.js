@@ -209,3 +209,45 @@ export const getNFTLink = async (link) => {
     throw error;
   }
 };
+
+export const getAllNFTs = async (publicKey) => {
+  let config = {
+    method: "get",
+    maxBodyLength: Infinity,
+    url: `https://api.simplehash.com/api/v0/nfts/owners?chains=solana,ethereum&wallet_addresses=${publicKey}&order_by=transfer_time__asc&limit=50`,
+    headers: {
+      "X-API-KEY": "beechat_sk_oo0tgrh6e20rqdp7c2pkhoq745pwn8bs",
+      Accept: "application/json",
+    },
+  };
+
+  try {
+    const response = await axios.request(config);
+
+    return response;
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    throw error;
+  }
+};
+
+export const getNFTDetails = async (NFTId) => {
+  let config = {
+    method: "get",
+    maxBodyLength: Infinity,
+    url: `https://www.crossmint.com/api/2022-06-09/collections/598a7a02-6787-459b-a5b3-d5f0ee252fdc/nfts/${NFTId}`,
+    headers: {
+      "X-API-KEY":
+        "sk_production_6BKBM7ABJ9ZpCCCeTJWuMieBbNg2xLWqY4dxG8ivK5K7HhU3YwsgJ5jS9bBsnt3H3S19cVLDmYvbjQixp57r9jowtGZQypN5X5RY2eiU6nHuFksJdn8GhZcJxAZ9BMfQ4mwR2CqTvTmgamzQqmMMoeRrEDcypADPFgD1M8xK3MukP3uLeHDDBwmUBvsbG4M4SM9cH6U24fGXYW7EoZceG619",
+    },
+  };
+
+  try {
+    const response = await axios.request(config);
+
+    return response;
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    throw error;
+  }
+};
