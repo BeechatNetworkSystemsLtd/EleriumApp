@@ -16,4 +16,6 @@ export const IMAGES = {
   dropdownIcon2: require("../../assets/dropdownIcon2.png"),
   dropdownIcon3: require("../../assets/dropdownIcon3.png"),
   closeIcon: require("../../assets/closeIcon.png"),
+
+  activeChipICon: require("../../assets/activeChipICon.png"),
 };
